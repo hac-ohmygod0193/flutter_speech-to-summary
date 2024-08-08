@@ -65,6 +65,15 @@ class _SettingsPageState extends State<SettingsPage> {
               border: OutlineInputBorder(),
             ),
           ),
+          SizedBox(height: 16),
+          Text(
+            'You must add both API keys to continue.',
+            style: TextStyle(
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
           SizedBox(height: 32),
           ElevatedButton(
             child: Text('Save API Keys'),

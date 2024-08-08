@@ -35,9 +35,9 @@
         </intent>
     </queries>
     <application
-        android:label="flutter_speech_to_summary"
+        android:label="Note Audio"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
             android:exported="true"

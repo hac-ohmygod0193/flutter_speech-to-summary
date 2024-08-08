@@ -98,7 +98,7 @@ class _CreateNotePageState extends State<CreateNotePage> {
             ),
             if (_filePath != null) ...[
               SizedBox(height: 16),
-              Text('Selected File: $_fileName', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Selected Audio File: $_fileName', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 16),
               Card(
                 margin: EdgeInsets.symmetric(vertical: 8),
