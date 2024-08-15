@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Required only if your app needs to access images or photos
  that other apps created. -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -38,6 +39,8 @@
         android:label="Note Audio"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+        tools:replace="android:label"
+        android:requestLegacyExternalStorage="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

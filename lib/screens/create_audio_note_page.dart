@@ -8,15 +8,15 @@ import '../services/api_keys_db.dart';
 import '../utilities/alert_utils.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/section_widget.dart';
-
-class CreateNotePage extends StatefulWidget {
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+import 'package:flutter_speech_to_summary/utilities/get_directory.dart';
+class CreateAudioNotePage extends StatefulWidget {
   @override
-  _CreateNotePageState createState() => _CreateNotePageState();
+  _CreateAudioNotePageState createState() => _CreateAudioNotePageState();
 }
 
-class _CreateNotePageState extends State<CreateNotePage> {
+class _CreateAudioNotePageState extends State<CreateAudioNotePage> {
   final _titleController = TextEditingController();
-  final _languageController = TextEditingController();
   String? _filePath;
   String? _fileName;
   Map<String, dynamic>? _result;
@@ -68,12 +68,12 @@ class _CreateNotePageState extends State<CreateNotePage> {
         ),
       ),
       body: ListView(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         children: [
           if (_result == null) ...[
-
             Card(
-              margin: EdgeInsets.symmetric(vertical: 8),
+              margin: EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: TextField(
@@ -81,51 +81,72 @@ class _CreateNotePageState extends State<CreateNotePage> {
                   decoration: InputDecoration(
                     labelText: 'Create your note title',
                     hintText: 'Default is your file name',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     helperText: 'Enter a descriptive title for your note',
                   ),
                 ),
               ),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 24),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 16), backgroundColor: Colors.blueAccent,
+                padding: EdgeInsets.symmetric(vertical: 18),
+                backgroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              icon: Icon(Icons.file_upload),
-              label: Text(_filePath == null ? 'Select file' : 'Reselect file'),
+              icon: Icon(Icons.file_upload, size: 24),
+              label: Text(
+                _filePath == null ? 'Select file' : 'Reselect file',
+                style: TextStyle(fontSize: 16),
+              ),
               onPressed: _selectAudioFile,
             ),
             if (_filePath != null) ...[
-              SizedBox(height: 16),
-              Text('Selected Audio File: $_fileName', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 16),
+              SizedBox(height: 24),
+              Text(
+                'Selected Audio File: $_fileName',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              SizedBox(height: 24),
               Card(
-                margin: EdgeInsets.symmetric(vertical: 8),
+                margin: EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: LanguageSelector(onLanguageSelected: _handleLanguageSelected),
                 ),
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 24),
               if (_selectedLanguage == null)
                 Padding(
-                  padding: EdgeInsets.only(bottom: 8),
+                  padding: EdgeInsets.only(bottom: 12),
                   child: Text(
                     'Please select a language before generating a note',
-                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: 18),
                   backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                icon: Icon(Icons.note_add),
-                label: Text('Generate Note'),
+                icon: Icon(Icons.note_add, size: 24),
+                label: Text(
+                  'Generate Note',
+                  style: TextStyle(fontSize: 16),
+                ),
                 onPressed: (_isGenerating || _selectedLanguage == null) ? null : _generateNote,
               ),
-
             ],
             if (_isGenerating) ...[
               SizedBox(height: 32),
@@ -134,23 +155,33 @@ class _CreateNotePageState extends State<CreateNotePage> {
           ] else ...[
             SectionWidget(
               title: 'File Information',
-              content: 'File: $_fileName\n'
-                  'Execute time: ${_result!['execute_time']}',
+              content: 'File: $_fileName\nExecute time: ${_result!['execute_time']}',
             ),
             SectionWidget(title: 'Generated by', content: _result!['source']),
             SectionWidget(title: 'Note', content: _result!['note'], copyable: true),
             SectionWidget(title: 'Summary', content: _result!['summary'], copyable: true),
             SectionWidget(title: 'Transcript', content: _result!['text'], copyable: true, scrollable: true),
-            SizedBox(height: 16),
+            SizedBox(height: 24),
             ElevatedButton(
-              child: Text('Save'),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 18),
+                backgroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                'Save',
+                style: TextStyle(fontSize: 16),
+              ),
               onPressed: _saveNote,
             ),
           ],
         ],
       ),
+
     );
   }
+
+
 
 
   Future<void> _selectAudioFile() async {

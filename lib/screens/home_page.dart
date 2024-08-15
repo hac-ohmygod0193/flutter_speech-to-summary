@@ -78,11 +78,71 @@ class _HomePageState extends State<HomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
-        onPressed: () => Navigator.pushNamed(context, '/create_note'),
+        onPressed: () => _showNewNoteOptions(context),
       ),
     );
   }
-
+  void _showNewNoteOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'New Note',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              _buildOption(
+                icon: Icons.audio_file,
+                text: 'Upload audio',
+                onTap: () {
+                  // Handle upload audio
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/create_audio_note');
+                },
+              ),
+              _buildOption(
+                icon: Icons.link,
+                text: 'Use YouTube video',
+                onTap: () {
+                  // Handle YouTube video
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/create_yt_note');
+                },
+              ),
+              SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
   void _showDeleteDialog(BuildContext context, int noteId) {
     showDialog(
       context: context,
@@ -107,4 +167,16 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+  Widget _buildOption({
+    required IconData icon,
+    required String text,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white),
+      title: Text(text, style: TextStyle(color: Colors.white)),
+      onTap: onTap,
+    );
+  }
+
 }
