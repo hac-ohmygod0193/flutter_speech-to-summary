@@ -340,9 +340,9 @@ class _CreateAudioNotePageState extends State<CreateAudioNotePage> {
       _updateProgress(1.0, 'Finalizing...');
       setState(() {
         _result = {
-          'text': transcription,
-          'summary': summary,
-          'note': note,
+          'text': _ensureUtf8(transcription),
+          'summary': _ensureUtf8(summary),
+          'note': _ensureUtf8(note),
           'source': source,
           'execute_time': DateTime.now().toString(),
         };
@@ -357,7 +357,16 @@ class _CreateAudioNotePageState extends State<CreateAudioNotePage> {
       });
     }
   }
-
+  String _ensureUtf8(String text) {
+    try {
+      // First, try to decode as UTF-8
+      utf8.decode(utf8.encode(text));
+      return text; // If successful, it's already UTF-8
+    } catch (_) {
+      // If UTF-8 decoding fails, assume it's ISO-8859-1 and convert
+      return utf8.decode(latin1.encode(text));
+    }
+  }
   Future<void> _saveNote() async {
     if (_result == null) return;
 
