@@ -51,18 +51,18 @@ class NotesDb {
 }
 
   static Future<List<Note>> getNotes() async {
-  final db = await database;
-  final List<Map<String, dynamic>> maps = await db.query('notes', orderBy: 'timestamp DESC');
-  return List.generate(maps.length, (i) {
-    final resultMap = jsonDecode(utf8.decode(maps[i]['result']));
-    return Note.fromMap({
-      ...maps[i],
-      'title': utf8.decode(maps[i]['title']),
-      'file_name': utf8.decode(maps[i]['file_name']),
-      'result': resultMap,
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('notes', orderBy: 'timestamp DESC');
+    return List.generate(maps.length, (i) {
+      final resultMap = jsonDecode(utf8.decode(maps[i]['result']));
+      return Note.fromMap({
+        ...maps[i],
+        'title': utf8.decode(maps[i]['title']),
+        'file_name': utf8.decode(maps[i]['file_name']),
+        'result': resultMap,
+      });
     });
-  });
-}
+  }
 
   static Future<Note?> getNoteContent(int noteId) async {
     final db = await database;
@@ -79,13 +79,6 @@ class NotesDb {
         'file_name': utf8.decode(maps.first['file_name']),
         'result': resultMap,
       });
-    }
-    return null;
-  }
-
-    if (maps.isNotEmpty) {
-      final resultMap = jsonDecode(maps.first['result']);
-      return Note.fromMap({...maps.first, 'result': resultMap});
     }
     return null;
   }
