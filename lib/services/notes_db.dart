@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import 'dart:convert';
 import '../models/note.dart';
 import 'dart:async';
+
 class NotesDb {
   static Database? _database;
 
@@ -25,7 +26,7 @@ class NotesDb {
           file_name TEXT,
           result TEXT,
           timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''');
       },
     );
@@ -41,22 +42,27 @@ class NotesDb {
   static Future<void> createNote(String title, String fileName, Map<String, dynamic> result) async {
     final db = await database;
     await db.insert('notes', {
-      'title': title,
-      'file_name': fileName,
-      'result': jsonEncode(result),
+      'title': utf8.encode(title),
+      'file_name': utf8.encode(fileName),
+      'result': utf8.encode(jsonEncode(result)),
       'timestamp': DateTime.now().toString(),
     });
     await refreshNotes();
-  }
+}
 
   static Future<List<Note>> getNotes() async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('notes', orderBy: 'timestamp DESC');
-    return List.generate(maps.length, (i) {
-      final resultMap = jsonDecode(maps[i]['result']);
-      return Note.fromMap({...maps[i], 'result': resultMap});
+  final db = await database;
+  final List<Map<String, dynamic>> maps = await db.query('notes', orderBy: 'timestamp DESC');
+  return List.generate(maps.length, (i) {
+    final resultMap = jsonDecode(utf8.decode(maps[i]['result']));
+    return Note.fromMap({
+      ...maps[i],
+      'title': utf8.decode(maps[i]['title']),
+      'file_name': utf8.decode(maps[i]['file_name']),
+      'result': resultMap,
     });
-  }
+  });
+}
 
   static Future<Note?> getNoteContent(int noteId) async {
     final db = await database;
@@ -65,6 +71,17 @@ class NotesDb {
       where: 'id = ?',
       whereArgs: [noteId],
     );
+    if (maps.isNotEmpty) {
+      final resultMap = jsonDecode(utf8.decode(maps.first['result']));
+      return Note.fromMap({
+        ...maps.first,
+        'title': utf8.decode(maps.first['title']),
+        'file_name': utf8.decode(maps.first['file_name']),
+        'result': resultMap,
+      });
+    }
+    return null;
+  }
 
     if (maps.isNotEmpty) {
       final resultMap = jsonDecode(maps.first['result']);
