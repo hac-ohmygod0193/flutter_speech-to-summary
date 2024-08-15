@@ -5,8 +5,10 @@ import 'screens/create_audio_note_page.dart';
 import 'screens/create_yt_note_page.dart';
 import 'screens/settings_page.dart';
 import 'services/notes_db.dart';
+import 'dart:io';
 
 void main() async {
+  Encoding.getByName('utf-8');
   WidgetsFlutterBinding.ensureInitialized();
   await NotesDb.initDatabase();
   NotesDb.initStream();
