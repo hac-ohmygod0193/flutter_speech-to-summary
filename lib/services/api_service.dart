@@ -127,20 +127,20 @@ class ApiService {
       final response = await http.post(
         uri,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
           'Authorization': 'Bearer $apiKey',
         },
-        body: json.encode({
+        body: utf8.encode(json.encode({
           'messages': [
             {'role': 'user', 'content': prompt}
           ],
           'model': 'llama-3.1-70b-versatile',
           'temperature': 1,
-        }),
+        })),
       );
 
       if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
+        final jsonResponse = json.decode(utf8.decode(response.bodyBytes));
         return {'success': true, 'data': jsonResponse['choices'][0]['message']['content']};
       } else {
         return {'success': false, 'error': 'Request failed: ${response.body}'};
