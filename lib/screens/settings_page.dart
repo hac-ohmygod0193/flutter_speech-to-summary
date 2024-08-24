@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_keys_db.dart';
+import '../services/api_service.dart';
 
 class SettingsPage extends StatefulWidget {
   @override
@@ -10,6 +11,11 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final _geminiApiKeyController = TextEditingController();
   final _groqApiKeyController = TextEditingController();
+  String? _geminiApiKeyStatus;
+  String? _groqApiKeyStatus;
+  bool _isSaveButtonEnabled = false;
+  bool _isGeminiValidating = false;
+  bool _isGroqValidating = false;
 
   @override
   void initState() {
@@ -22,6 +28,47 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       _geminiApiKeyController.text = geminiApiKey ?? '';
       _groqApiKeyController.text = groqApiKey ?? '';
+      _updateSaveButtonState();
+    });
+  }
+
+  Future<void> _validateApiKey(String apiKey, String serviceName) async {
+    setState(() {
+      if (serviceName == 'Gemini') {
+        _isGeminiValidating = true;
+      } else if (serviceName == 'Groq') {
+        _isGroqValidating = true;
+      }
+    });
+
+    bool isValid = await _checkApiKeyValidity(apiKey, serviceName);
+
+    setState(() {
+      if (serviceName == 'Gemini') {
+        _isGeminiValidating = false;
+        _geminiApiKeyStatus = isValid ? 'Valid API Key' : 'Invalid API Key, Please Try Again';
+      } else if (serviceName == 'Groq') {
+        _isGroqValidating = false;
+        _groqApiKeyStatus = isValid ? 'Valid API Key' : 'Invalid API Key, Please Try Again';
+      }
+      _updateSaveButtonState();
+    });
+  }
+
+  Future<bool> _checkApiKeyValidity(String apiKey, String serviceName) async {
+    if (serviceName == 'Gemini') {
+      final result = await ApiService.geminiCheckConnection(apiKey);
+      return result['success'] ?? false;
+    } else if (serviceName == 'Groq') {
+      final result = await ApiService.groqCheckConnection(apiKey);
+      return result['success'] ?? false;
+    }
+    return false;
+  }
+
+  void _updateSaveButtonState() {
+    setState(() {
+      _isSaveButtonEnabled = _geminiApiKeyStatus == 'Valid API Key' && _groqApiKeyStatus == 'Valid API Key';
     });
   }
 
@@ -51,6 +98,16 @@ class _SettingsPageState extends State<SettingsPage> {
               border: OutlineInputBorder(),
             ),
           ),
+          SizedBox(height: 8),
+          _buildValidateButton('Gemini'),
+          if (_geminiApiKeyStatus != null)
+            Text(
+              _geminiApiKeyStatus!,
+              style: TextStyle(
+                color: _geminiApiKeyStatus == 'Valid API Key' ? Colors.green : Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           SizedBox(height: 32),
           _buildInfoBox(
             'Groq API Key Setup',
@@ -65,6 +122,16 @@ class _SettingsPageState extends State<SettingsPage> {
               border: OutlineInputBorder(),
             ),
           ),
+          SizedBox(height: 8),
+          _buildValidateButton('Groq'),
+          if (_groqApiKeyStatus != null)
+            Text(
+              _groqApiKeyStatus!,
+              style: TextStyle(
+                color: _groqApiKeyStatus == 'Valid API Key' ? Colors.green : Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           SizedBox(height: 16),
           Text(
             'You must add both API keys to continue.',
@@ -76,11 +143,44 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           SizedBox(height: 32),
           ElevatedButton(
-            child: Text('Save API Keys'),
-            onPressed: _saveApiKeys,
+            child: Text(
+                'Save API Keys',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            onPressed: _isSaveButtonEnabled ? _saveApiKeys : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _isSaveButtonEnabled ? Colors.blue : Colors.grey,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildValidateButton(String serviceName) {
+    bool isValidating = serviceName == 'Gemini' ? _isGeminiValidating : _isGroqValidating;
+
+    return ElevatedButton(
+      onPressed: isValidating
+          ? null
+          : () => _validateApiKey(
+        serviceName == 'Gemini' ? _geminiApiKeyController.text : _groqApiKeyController.text,
+        serviceName,
+      ),
+      child: isValidating
+          ? SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(
+          color: Colors.white,
+          strokeWidth: 2,
+        ),
+      )
+          : Text('Validate $serviceName API Key'),
     );
   }
 

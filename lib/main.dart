@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/home_page.dart';
+import 'package:flutter_speech_to_summary/screens/home_page.dart';
 import 'screens/note_page.dart';
 import 'screens/create_audio_note_page.dart';
 import 'screens/create_yt_note_page.dart';
@@ -10,7 +10,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotesDb.initDatabase();
   NotesDb.initStream();
-  runApp(MyApp());
+  runApp(
+    MyApp(),
+  );
 }
 
 class MyApp extends StatelessWidget {

@@ -51,7 +51,41 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> geminiCheckConnection(String apiKey) async {
+    final uri = Uri.parse('$_geminiBaseUrl/models/gemini-1.5-pro-latest:generateContent?key=$apiKey');
+    try {
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'contents': [
+            {
+              'role': 'user',
+              'parts': [
+                {'text': 'hello'}
+              ]
+            },
+          ],
+          'safetySettings': [
+            {'category': 'HARM_CATEGORY_HARASSMENT', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_HATE_SPEECH', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold': 'BLOCK_NONE'},
+          ]
+        }),
+      );
 
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        return {'success': true, 'data': jsonResponse['candidates'][0]['content']['parts'][0]['text']};
+      } else {
+        return {'success': false, 'error': 'Your API key is not working: ${response.body}'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: ${e.toString()}'};
+    }
+
+  }
   static Future<Map<String, dynamic>> geminiGenerateContent(String apiKey, String fileUri, String prompt) async {
     final uri = Uri.parse('$_geminiBaseUrl/models/gemini-1.5-pro-latest:generateContent?key=$apiKey');
     try {
@@ -99,6 +133,68 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> geminiGenerateAnswer(String apiKey, String transcription, String question) async {
+    final uri = Uri.parse('$_geminiBaseUrl/models/gemini-1.5-pro-latest:generateContent?key=$apiKey');
+    try {
+      String prompt="""I will now provide you with the full transcription. Please process and analyze this information, organizing the key concepts, main topics, and important details in your memory.
+
+                              [TRANSCRIPTION]
+                              $transcription
+                      
+                              Once you have processed the entire transcription, respond with: 'Transcription received and processed. Ready for questions'.
+                      
+                              For all subsequent questions I ask, please follow these guidelines:
+                              1. Answer based solely on the course transcription provided above.
+                              2. Treat each question as if it were the first, ensuring consistent quality and accuracy.
+                              3. Provide concise responses using only information from the course material.
+                              4. If a question cannot be answered based on the transcription, state that the information is not available.
+                              5. Always respond in the same language as the question.
+                      
+                              You don't need to repeat these instructions; just answer the questions directly.""";
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'contents': [
+            {
+              'role': 'user',
+              'parts': [
+                {'text': json.encode(prompt)}
+              ]
+            },
+            {
+              'role': 'user',
+              'parts': [
+                {'text': 'Transcription received and processed. Ready for questions'}
+              ]
+            },
+            {
+              'role': 'user',
+              'parts': [
+                {'text': json.encode(question)}
+              ]
+            },
+          ],
+          'safetySettings': [
+            {'category': 'HARM_CATEGORY_HARASSMENT', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_HATE_SPEECH', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold': 'BLOCK_NONE'},
+          ]
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        return {'success': true, 'data': jsonResponse['candidates'][0]['content']['parts'][0]['text']};
+      } else {
+        return {'success': false, 'error': 'Generate content failed: ${response.body}'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: ${e.toString()}'};
+    }
+  }
+
   static Future<Map<String, dynamic>> transcribeAudio(File file, String apiKey) async {
     final uri = Uri.parse('$_groqBaseUrl/audio/transcriptions');
     final request = http.MultipartRequest('POST', uri)
@@ -114,16 +210,45 @@ class ApiService {
         final jsonResponse = json.decode(responseBody);
         return {'success': true, 'data': jsonResponse['text']};
       } else {
-        return {'success': false, 'error': 'Transcription failed: ${response.reasonPhrase}'};
+        return {'success': false, 'error': 'Transcription failed: ${response.statusCode}'};
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: ${e.toString()}'};
     }
   }
+  static Future<Map<String, dynamic>> groqCheckConnection(String apiKey) async {
+    final uri = Uri.parse('$_groqBaseUrl/chat/completions');
+    try {
 
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Authorization': 'Bearer $apiKey',
+        },
+        body: utf8.encode(json.encode({
+          'messages': [
+            {'role': 'user', 'content': 'hi'}
+          ],
+          'model': 'llama-3.1-70b-versatile',
+          'temperature': 0,
+        })),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(utf8.decode(response.bodyBytes));
+        return {'success': true, 'data': jsonResponse['choices'][0]['message']['content']};
+      } else {
+        return {'success': false, 'error': 'Request failed: ${response.body}'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: ${e.toString()}'};
+    }
+  }
   static Future<Map<String, dynamic>> groqGenerateContent(String prompt, String apiKey) async {
     final uri = Uri.parse('$_groqBaseUrl/chat/completions');
     try {
+
       final response = await http.post(
         uri,
         headers: {
@@ -135,7 +260,53 @@ class ApiService {
             {'role': 'user', 'content': prompt}
           ],
           'model': 'llama-3.1-70b-versatile',
-          'temperature': 1,
+          'temperature': 0,
+        })),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(utf8.decode(response.bodyBytes));
+        return {'success': true, 'data': jsonResponse['choices'][0]['message']['content']};
+      } else {
+        return {'success': false, 'error': 'Request failed: ${response.body}'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: ${e.toString()}'};
+    }
+  }
+  static Future<Map<String, dynamic>> groqGenerateAnswer(String apiKey, String transcription, String question) async {
+    final uri = Uri.parse('$_groqBaseUrl/chat/completions');
+    try {
+      String prompt="""I will now provide you with the full transcription. Please process and analyze this information, organizing the key concepts, main topics, and important details in your memory.
+
+                              Once you have processed the entire transcription, respond with: 'Transcription received and processed. Ready for questions.'
+                      
+                              For all subsequent questions I ask, please follow these guidelines:
+                              1. Answer based solely on the course transcription provided above.
+                              2. Treat each question as if it were the first, ensuring consistent quality and accuracy.
+                              3. Provide concise responses using only information from the course material.
+                              4. If a question cannot be answered based on the transcription, state that the information is not available.
+                              5. Always respond in the same language as the question.
+                      
+                              You don't need to repeat these instructions; just answer the questions directly.""";
+      String TRANSCRIPTION="""Here is Transcripton:
+                              $transcription""";
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Authorization': 'Bearer $apiKey',
+        },
+        body: utf8.encode(json.encode({
+          'messages': [
+            {'role': 'system', 'content': json.encode(prompt)},
+            {'role': 'user', 'content': json.encode(TRANSCRIPTION)},
+            {'role': 'assistant', 'content': 'Transcription received and processed. Ready for questions.'},
+            {'role': 'user', 'content': json.encode(question)}
+          ],
+          'model': 'llama-3.1-70b-versatile',
+          'temperature': 0,
         })),
       );
 
