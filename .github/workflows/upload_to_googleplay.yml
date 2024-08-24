@@ -21,7 +21,7 @@ jobs:
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
       with:
-        gradle-version: 7.6.3
+        gradle-version: 7.6.3  # Adjust this to match your Gradle version if needed
     
     - name: Set up environment for signing
       run: |
@@ -30,34 +30,16 @@ jobs:
         echo "SIGNING_KEY_ALIAS=${{ secrets.ALIAS }}" >> android/local.properties
         echo "SIGNING_STORE_PASSWORD=${{ secrets.KEY_STORE_PASSWORD }}" >> android/local.properties
     
-    - name: Find gradlew
-      run: find . -name gradlew
-    
-    - name: Grant execute permission for gradlew
-      run: chmod +x $(find . -name gradlew)
     
     - name: Build and sign AAB
-      run: |
-        GRADLEW_PATH=$(find . -name gradlew)
-        ANDROID_DIR=$(dirname $GRADLEW_PATH)
-        cd $ANDROID_DIR
-        ./gradlew bundleRelease -Pandroid.injected.signing.store.file=release.keystore \
-                                -Pandroid.injected.signing.store.password=${{ secrets.KEY_STORE_PASSWORD }} \
-                                -Pandroid.injected.signing.key.alias=${{ secrets.ALIAS }} \
-                                -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
-        
-        # Find and copy the AAB to the GitHub workspace
-        AAB_PATH=$(find . -name "app-release.aab")
-        if [ -z "$AAB_PATH" ]; then
-          echo "AAB file not found"
-          exit 1
-        else
-          echo "Found AAB at $AAB_PATH"
-          cp $AAB_PATH $GITHUB_WORKSPACE/app-release.aab
-        fi
+      working-directory: ./android
+      run: ./gradlew bundleRelease -Pandroid.injected.signing.store.file=release.keystore \
+                                   -Pandroid.injected.signing.store.password=${{ secrets.KEY_STORE_PASSWORD }} \
+                                   -Pandroid.injected.signing.key.alias=${{ secrets.ALIAS }} \
+                                   -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
     
     - name: Upload AAB
       uses: actions/upload-artifact@v3
       with:
         name: app-release
-        path: ${{ github.workspace }}/app-release.aab
+        path: android/app/build/outputs/bundle/release/app-release.aab
