@@ -5,32 +5,41 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    
     - name: Set up JDK 11
       uses: actions/setup-java@v3
       with:
         java-version: '11'
         distribution: 'temurin'
+    
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
       with:
-        gradle-version: 7.4  # Specify your desired Gradle version
+        gradle-version: 7.6.3  # Adjust this to match your Gradle version if needed
+    
     - name: Set up environment for signing
       run: |
         echo "SIGNING_KEY=${{ secrets.SIGNING_KEY }}" > android/local.properties
         echo "SIGNING_KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
         echo "SIGNING_KEY_ALIAS=${{ secrets.ALIAS }}" >> android/local.properties
         echo "SIGNING_STORE_PASSWORD=${{ secrets.KEY_STORE_PASSWORD }}" >> android/local.properties
+    
+    - name: Grant execute permission for gradlew
+      run: chmod +x android/gradlew
+    
     - name: Build and sign AAB
       working-directory: ./android
       run: ./gradlew bundleRelease -Pandroid.injected.signing.store.file=release.keystore \
                                    -Pandroid.injected.signing.store.password=${{ secrets.KEY_STORE_PASSWORD }} \
                                    -Pandroid.injected.signing.key.alias=${{ secrets.ALIAS }} \
                                    -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+    
     - name: Upload AAB
       uses: actions/upload-artifact@v3
       with:
