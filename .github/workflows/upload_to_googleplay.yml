@@ -15,7 +15,12 @@ jobs:
     steps:
         #1 Checkout Repository
       - uses: actions/checkout@v3
-      
+      #2 Setup Java
+      - name: Set Up Java
+        uses: actions/setup-java@v3.12.0
+        with:
+          distribution: 'oracle'
+          java-version: '17'
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
