@@ -118,7 +118,7 @@ class _CreateYTNotePageState extends State<CreateYTNotePage> {
                 ),
                 icon: Icon(Icons.link,color: Colors.white,),
                 label: Text(
-                  _filePath == null ? 'Select file' : 'Reselect file',
+                  _filePath == null ? 'Select Video' : 'Reselect Video',
                   style: TextStyle(fontSize: 16,color: Colors.white),
 
                 ),
@@ -239,11 +239,13 @@ class _CreateYTNotePageState extends State<CreateYTNotePage> {
                 backgroundColor: Colors.black,
               ),
               child: Text(
-                'Save',
+                'Close',
                 style: TextStyle(fontSize: 16,color: Colors.white),
 
               ),
-              onPressed: _saveNote,
+              onPressed: (){
+                Navigator.pop(context);
+              },
             ),
           ],
         ],
@@ -443,16 +445,14 @@ class _CreateYTNotePageState extends State<CreateYTNotePage> {
         }
         transcription = transcriptionResult['data'];
       }
-
-      _updateProgress(0.4, 'Generating summary...');
+      _updateProgress(0.5, 'Uploading to Gemini...');
+      final uriResult = await ApiService.uploadToGemini(geminiApiKey, File(_filePath!));
+      final file_uri = uriResult['data'];
       try {
         // Try Gemini first
-        _updateProgress(0.5, 'Uploading to Gemini...');
-        final uriResult = await ApiService.uploadToGemini(geminiApiKey, File(_filePath!));
         if (!uriResult['success']) {
           throw Exception(uriResult['error']);
         }
-        final file_uri = uriResult['data'];
 
         final gemini_summary_prompt = '''
         Listen intently to the audio file. Provide a concise summary of the speaker's message in $language.
@@ -460,10 +460,7 @@ class _CreateYTNotePageState extends State<CreateYTNotePage> {
         Include timestamps for significant shifts or particularly impactful moments.
         Try to identify who the speaker is.
         ''';
-        final gemini_note_prompt = '''
-        Listen intently to the audio file. Distill the essence points into a concise note in $language. 
-        Your note should capture the key points and essential information, presented in bullet points, within a 250-word limit. 
-        ''';
+
 
         _updateProgress(0.6, 'Generating summary with Gemini...');
         final summaryResult = await ApiService.geminiGenerateContent(
@@ -472,19 +469,8 @@ class _CreateYTNotePageState extends State<CreateYTNotePage> {
           throw Exception('Summary Generation Error: ${summaryResult['error']}');
         }
         summary = summaryResult['data'];
-        await Future.delayed(Duration(milliseconds: 100));
-        _updateProgress(0.8, 'Generating note with Gemini...');
-        final noteResult = await ApiService.geminiGenerateContent(
-            geminiApiKey, file_uri, gemini_note_prompt);
-        if (!noteResult['success']) {
-          throw Exception('Note Generation Error: ${noteResult['error']}');
-        }
-        note = noteResult['data'];
-        source = "Gemini-Generated";
+        source = "Gemini, ";
       } catch (e) {
-        print('Gemini failed: ${e.toString()}');
-        _updateProgress(0.5, 'Gemini failed, trying Groq...');
-
         // If Gemini fails, try Groq
         try {
 
@@ -497,6 +483,47 @@ class _CreateYTNotePageState extends State<CreateYTNotePage> {
           `$transcription`
           -----------------------
           ''';
+
+
+          _updateProgress(0.6, 'Generating summary with Groq...');
+          final summaryResult = await ApiService.groqGenerateContent(groq_summary_prompt, groqApiKey);
+          if (!summaryResult['success']) {
+            throw Exception('Summary Generation Error: ${summaryResult['error']}');
+          }
+          summary = summaryResult['data'];
+
+          source = "Llama, ";
+        } catch (e) {
+          // If both Gemini and Groq fail, show error dialog
+          AlertUtils.showErrorDialog(context, 'Generation Error', 'Both Gemini and Groq failed: ${e.toString()}');
+          return;
+        }
+      }
+      await Future.delayed(Duration(milliseconds: 100));
+      //generate note
+      try {
+        // Try Gemini first
+        if (!uriResult['success']) {
+          throw Exception(uriResult['error']);
+        }
+
+
+        final gemini_note_prompt = '''
+        Listen intently to the audio file. Distill the essence points into a concise note in $language. 
+        Your note should capture the key points and essential information, presented in bullet points, within a 250-word limit. 
+        ''';
+        _updateProgress(0.8, 'Generating note with Gemini...');
+        final noteResult = await ApiService.geminiGenerateContent(
+            geminiApiKey, file_uri, gemini_note_prompt);
+        if (!noteResult['success']) {
+          throw Exception('Note Generation Error: ${noteResult['error']}');
+        }
+        note = noteResult['data'];
+        source = source+"Gemini";
+      } catch (e) {
+        // If Gemini fails, try Groq
+        try {
+
           final groq_note_prompt = '''
           Based on the transcript provided, generate a set of useful notes in $language. 
           Include key concepts, important details, and any actionable items mentioned. 
@@ -507,21 +534,13 @@ class _CreateYTNotePageState extends State<CreateYTNotePage> {
           `$transcription`
           ----------------------- 
           ''';
-
-          _updateProgress(0.6, 'Generating summary with Groq...');
-          final summaryResult = await ApiService.groqGenerateContent(groq_summary_prompt, groqApiKey);
-          if (!summaryResult['success']) {
-            throw Exception('Summary Generation Error: ${summaryResult['error']}');
-          }
-          summary = summaryResult['data'];
-          await Future.delayed(Duration(milliseconds: 100));
           final noteResult = await ApiService.groqGenerateContent(groq_note_prompt, groqApiKey);
           if (!noteResult['success']) {
             throw Exception('Note Generation Error: ${noteResult['error']}');
           }
           _updateProgress(0.8, 'Generating note with Groq...');
           note = noteResult['data'];
-          source = "Llama-Generated";
+          source = source+"Llama";
         } catch (e) {
           // If both Gemini and Groq fail, show error dialog
           AlertUtils.showErrorDialog(context, 'Generation Error', 'Both Gemini and Groq failed: ${e.toString()}');
@@ -530,16 +549,17 @@ class _CreateYTNotePageState extends State<CreateYTNotePage> {
       }
       _updateProgress(1.0, 'Finalizing...');
       setState(() {
+        _isGenerating = false;
+        _executionTime = _formatDuration(stopwatch.elapsed);
         _result = {
           'text': transcription,
           'summary': summary,
           'note': note,
           'source': source,
-          'execute_time': DateTime.now().toString(),
+          'execute_time': _executionTime,
         };
-        _isGenerating = false;
-        _executionTime = _formatDuration(stopwatch.elapsed);
       });
+      _saveNote();
     } catch (e) {
       AlertUtils.showErrorDialog(context, 'Error', 'An unexpected error occurred: ${e.toString()}');
       return;
@@ -559,7 +579,6 @@ class _CreateYTNotePageState extends State<CreateYTNotePage> {
         : 'Note from $_fileName';
 
     await NotesDb.createNote(title, _fileName!, _result!);
-    Navigator.pop(context);
   }
   Widget _buildProgressBar() {
     return Column(

@@ -195,10 +195,12 @@ class _CreateAudioNotePageState extends State<CreateAudioNotePage> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: Text(
-                'Save',
+                'Close',
                 style: TextStyle(fontSize: 16, color: Colors.white),
               ),
-              onPressed: _saveNote,
+              onPressed: (){
+                Navigator.pop(context);
+              },
             ),
           ],
         ],
@@ -373,16 +375,18 @@ class _CreateAudioNotePageState extends State<CreateAudioNotePage> {
       }
       _updateProgress(1.0, 'Finalizing...');
       setState(() {
+
+        _isGenerating = false;
+        _executionTime = _formatDuration(stopwatch.elapsed);
         _result = {
           'text': transcription,
           'summary': summary,
           'note': note,
           'source': source,
-          'execute_time': DateTime.now().toString(),
+          'execute_time': _executionTime,
         };
-        _isGenerating = false;
-        _executionTime = _formatDuration(stopwatch.elapsed);
       });
+      _saveNote();
     } catch (e) {
       AlertUtils.showErrorDialog(context, 'Error', 'An unexpected error occurred: ${e.toString()}');
       return;
@@ -402,7 +406,7 @@ class _CreateAudioNotePageState extends State<CreateAudioNotePage> {
         : 'Note from $_fileName';
 
     await NotesDb.createNote(title, _fileName!, _result!);
-    Navigator.pop(context);
+
   }
   Widget _buildProgressBar() {
     return Column(

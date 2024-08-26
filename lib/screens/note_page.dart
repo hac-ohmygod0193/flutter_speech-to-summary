@@ -83,7 +83,7 @@ class _NotePageState extends State<NotePage> {
                     ),
                     SizedBox(height: 8), // Adds space between the title and the message
                     Text(
-                      'File: ${note.fileName} \nGenerate Time: ${note.timestamp}',
+                      'File: ${note.fileName} \nGenerate Time: ${note.timestamp} \nProcess Time: ${note.executeTime}',
                       style: TextStyle(
                         fontSize: 16.0,
                       ),
